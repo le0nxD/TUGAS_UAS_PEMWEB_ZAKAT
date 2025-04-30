@@ -1,13 +1,13 @@
-🕌 Obligatory Charity
+##🕌 Obligatory Charity
 
 
-📌 Overview
+##📌 Overview
 
 **Obligatory Charity** is a full-stack web application that simplifies the donation process. It integrates user authentication, donation management, and clean UI components to create a seamless experience for donors and administrators alike.
 
 ---
 
-✨ Features
+##✨ Features
 
 - 🔐 **Authentication** with Supabase
 - 💳 **Donation management system**
@@ -17,7 +17,7 @@
 
 ---
 
-🚀 Getting Started
+##🚀 Getting Started
 
 🔧 1. Clone the repository
 
@@ -51,7 +51,7 @@ Visit the app at: `http://localhost:5173`
 
 ---
 
-🧰 Tech Stack
+##🧰 Tech Stack
 
 | Tech            | Description                           |
 |-----------------|---------------------------------------|
@@ -63,13 +63,13 @@ Visit the app at: `http://localhost:5173`
 
 ---
 
-🛡️ License
+##🛡️ License
 
 This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-👨‍💻 Author
+##👨‍💻 Author
 
 Made with ❤️ by [Naufal Darlian](https://github.com/le0nxD)  
 Feel free to contribute or raise an issue!

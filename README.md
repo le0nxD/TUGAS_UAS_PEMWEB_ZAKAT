@@ -22,7 +22,7 @@
 🔧 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/obligatory-charity.git
+git clone https://github.com/le0nxD/obligatory-charity.git 
 cd obligatory-charity
 ```
 

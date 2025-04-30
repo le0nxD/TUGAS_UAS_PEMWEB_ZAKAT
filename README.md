@@ -1,21 +1,6 @@
-Tentu! Berikut versi `README.md` yang **lebih tertata, elegan, dan profesional**, cocok untuk proyek open-source maupun portofolio GitHub pribadi:
-
----
-
 ```markdown
-<h1 align="center">🕌 Obligatory Charity</h1>
+🕌 Obligatory Charity
 
-<p align="center">
-  A modern and responsive charity donation platform built with <strong>React</strong>, <strong>TypeScript</strong>, <strong>Tailwind CSS</strong>, <strong>Vite</strong>, and <strong>Supabase</strong>.
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/github/license/your-username/obligatory-charity" alt="License" />
-  <img src="https://img.shields.io/github/languages/top/your-username/obligatory-charity" alt="Top Language" />
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" />
-</p>
-
----
 
 ## 📌 Overview
 

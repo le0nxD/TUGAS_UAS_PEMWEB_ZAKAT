@@ -1,75 +1,76 @@
-#🕌 Obligatory Charity
+---
 
+# 🕌 Obligatory Charity
 
-#📌 Overview
-
-**Obligatory Charity** is a full-stack web application that simplifies the donation process. It integrates user authentication, donation management, and clean UI components to create a seamless experience for donors and administrators alike.
+A full-stack donation web app built for simplicity, speed, and scalability.
 
 ---
 
-#✨ Features
+## 📌 Overview
 
-- 🔐 **Authentication** with Supabase
-- 💳 **Donation management system**
-- 🎨 **Reusable UI components** with Tailwind CSS
-- ⚡ **Fast bundling and development** using Vite
-- 💡 **Built using TypeScript** for type safety and scalability
+**Obligatory Charity** streamlines the donation process through a seamless web experience. With modern UI components, secure authentication, and robust donation management, it's built to empower donors and administrators alike.
 
 ---
 
-#🚀 Getting Started
+## ✨ Features
 
-🔧 1. Clone the repository
+- 🔐 **Secure Authentication** powered by Supabase  
+- 💳 **Donation Management System** to track and manage contributions  
+- 🎨 **Reusable UI Components** using Tailwind CSS  
+- ⚡ **Blazing-fast Dev Environment** with Vite  
+- 🧠 **Type-Safe Codebase** using TypeScript  
 
+---
+
+## 🚀 Getting Started
+
+### 🔧 1. Clone the Repository
 ```bash
 git clone https://github.com/le0nxD/obligatory-charity.git 
 cd obligatory-charity
 ```
 
-📦 2. Install dependencies
-
+### 📦 2. Install Dependencies
 ```bash
 npm install
 ```
 
-🔑 3. Configure environment variables
-
-Create a `.env` file in the root directory:
-
+### 🔑 3. Set Up Environment Variables  
+Create a `.env` file in the root directory with the following:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-🧪 4. Run the development server
-
+### 🧪 4. Start Development Server
 ```bash
 npm run dev
 ```
-
-Visit the app at: `http://localhost:5173`
-
----
-
-#🧰 Tech Stack
-
-| Tech            | Description                           |
-|-----------------|---------------------------------------|
-| React           | Frontend UI framework                 |
-| TypeScript      | Typed JavaScript                      |
-| Tailwind CSS    | Utility-first CSS framework           |
-| Vite            | Fast frontend build tool              |
-| Supabase        | Backend-as-a-Service (BaaS)           |
+Access the app at: [http://localhost:5173](http://localhost:5173)
 
 ---
 
-#🛡️ License
+## 🧰 Tech Stack
 
-This project is licensed under the [MIT License](./LICENSE).
+| 🛠️ Tech         | 🔎 Description                      |
+|----------------|-------------------------------------|
+| **React**       | Frontend UI library                |
+| **TypeScript**  | Typed JavaScript for scalability   |
+| **Tailwind CSS**| Utility-first CSS framework        |
+| **Vite**        | Lightning-fast build tool          |
+| **Supabase**    | Backend-as-a-Service (BaaS)        |
 
 ---
 
-#👨‍💻 Author
+## 🛡️ License
 
-Made with ❤️ by [Naufal Darlian](https://github.com/le0nxD)  
-Feel free to contribute or raise an issue!
+Licensed under the [MIT License](./LICENSE)
+
+---
+
+## 👨‍💻 Author
+
+Crafted with ❤️ by [Naufal Darlian](https://github.com/le0nxD)  
+Contributions and feedback are always welcome!
+
+---

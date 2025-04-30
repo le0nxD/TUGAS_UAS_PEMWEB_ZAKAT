@@ -1,14 +1,13 @@
-```markdown
 🕌 Obligatory Charity
 
 
-## 📌 Overview
+📌 Overview
 
 **Obligatory Charity** is a full-stack web application that simplifies the donation process. It integrates user authentication, donation management, and clean UI components to create a seamless experience for donors and administrators alike.
 
 ---
 
-## ✨ Features
+✨ Features
 
 - 🔐 **Authentication** with Supabase
 - 💳 **Donation management system**
@@ -18,22 +17,22 @@
 
 ---
 
-## 🚀 Getting Started
+🚀 Getting Started
 
-### 🔧 1. Clone the repository
+🔧 1. Clone the repository
 
 ```bash
 git clone https://github.com/your-username/obligatory-charity.git
 cd obligatory-charity
 ```
 
-### 📦 2. Install dependencies
+📦 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 🔑 3. Configure environment variables
+🔑 3. Configure environment variables
 
 Create a `.env` file in the root directory:
 
@@ -42,7 +41,7 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 🧪 4. Run the development server
+🧪 4. Run the development server
 
 ```bash
 npm run dev
@@ -52,7 +51,7 @@ Visit the app at: `http://localhost:5173`
 
 ---
 
-## 🧰 Tech Stack
+🧰 Tech Stack
 
 | Tech            | Description                           |
 |-----------------|---------------------------------------|
@@ -64,19 +63,15 @@ Visit the app at: `http://localhost:5173`
 
 ---
 
-## 🛡️ License
+🛡️ License
 
 This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-## 👨‍💻 Author
+👨‍💻 Author
 
-Made with ❤️ by [Your Name](https://github.com/your-username)  
+Made with ❤️ by [Your Name](https://github.com/le0nxD)  
 Feel free to contribute or raise an issue!
 
 ```
-
----
-
-Jika kamu menginginkannya dalam bentuk file `.md` siap pakai atau ingin menambahkan screenshot proyek, bagian kontribusi, atau dokumentasi API, tinggal bilang saja ya!

@@ -71,7 +71,5 @@ This project is licensed under the [MIT License](./LICENSE).
 
 👨‍💻 Author
 
-Made with ❤️ by [Your Name](https://github.com/le0nxD)  
+Made with ❤️ by [Naufal Darlian](https://github.com/le0nxD)  
 Feel free to contribute or raise an issue!
-
-```

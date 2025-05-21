@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -6,9 +6,11 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { Database } from '../../lib/database.types';
 import supabase from '../../lib/supabase';
-import { Plus, Edit, Trash, Info } from 'lucide-react';
+import { Plus, Edit, Trash, Info, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Input from '../../components/ui/Input';
+import { useReactToPrint } from 'react-to-print';
+import PrintableTable from '../../components/ui/PrintableTable';
 
 type BayarZakat = Database['public']['Tables']['bayarzakat']['Row'];
 type BayarZakatInsert = Database['public']['Tables']['bayarzakat']['Insert'];
@@ -18,6 +20,7 @@ const BayarZakatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openModal, setOpenModal] = useState<'add' | 'edit' | 'view' | 'delete' | null>(null);
   const [selectedZakat, setSelectedZakat] = useState<BayarZakat | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -45,6 +48,19 @@ const BayarZakatPage: React.FC = () => {
     }
   }, [selectedZakat, openModal, setValue]);
 
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Data_Pembayaran_Zakat_${new Date().toLocaleDateString('id-ID')}`,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        resolve();
+      });
+    },
+    onPrintError: () => {
+      toast.error('Gagal mengekspor PDF. Silakan coba lagi.');
+    },
+  });
+
   const fetchZakat = async () => {
     setIsLoading(true);
     try {
@@ -60,7 +76,7 @@ const BayarZakatPage: React.FC = () => {
       setZakatList(data || []);
     } catch (error) {
       console.error('Error fetching zakat data:', error);
-      toast.error('Failed to fetch zakat data');
+      toast.error('Gagal mengambil data pembayaran zakat');
     } finally {
       setIsLoading(false);
     }
@@ -102,20 +118,20 @@ const BayarZakatPage: React.FC = () => {
       if (openModal === 'add') {
         const { error } = await supabase.from('bayarzakat').insert([data]);
         if (error) throw error;
-        toast.success('Pembayaran zakat added successfully');
+        toast.success('Pembayaran zakat berhasil ditambahkan');
       } else if (openModal === 'edit' && selectedZakat) {
         const { error } = await supabase
           .from('bayarzakat')
           .update(data)
           .eq('id_zakat', selectedZakat.id_zakat);
         if (error) throw error;
-        toast.success('Pembayaran zakat updated successfully');
+        toast.success('Pembayaran zakat berhasil diperbarui');
       }
       fetchZakat();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving zakat payment:', error);
-      toast.error('Failed to save zakat payment data');
+      toast.error('Gagal menyimpan data pembayaran zakat');
     }
   };
 
@@ -127,12 +143,12 @@ const BayarZakatPage: React.FC = () => {
         .delete()
         .eq('id_zakat', selectedZakat.id_zakat);
       if (error) throw error;
-      toast.success('Pembayaran zakat deleted successfully');
+      toast.success('Pembayaran zakat berhasil dihapus');
       fetchZakat();
       handleCloseModal();
     } catch (error) {
       console.error('Error deleting zakat payment:', error);
-      toast.error('Failed to delete zakat payment');
+      toast.error('Gagal menghapus pembayaran zakat');
     }
   };
 
@@ -154,6 +170,40 @@ const BayarZakatPage: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const printColumns = [
+    {
+      header: 'Nama KK',
+      accessor: 'nama_kk',
+    },
+    {
+      header: 'Tanggungan',
+      accessor: 'jumlah_tanggungan',
+    },
+    {
+      header: 'Dibayar',
+      accessor: 'jumlah_tanggunganyang_dibayar',
+    },
+    {
+      header: 'Jenis Bayar',
+      accessor: 'jenis_bayar',
+    },
+    {
+      header: 'Beras',
+      accessor: 'bayar_beras',
+      cell: (row: BayarZakat) => (row.bayar_beras ? `${row.bayar_beras} kg` : '-'),
+    },
+    {
+      header: 'Uang',
+      accessor: 'bayar_uang',
+      cell: (row: BayarZakat) => formatCurrency(row.bayar_uang),
+    },
+    {
+      header: 'Tanggal',
+      accessor: 'created_at',
+      cell: (row: BayarZakat) => formatDate(row.created_at),
+    },
+  ];
 
   const columns = [
     {
@@ -240,14 +290,23 @@ const BayarZakatPage: React.FC = () => {
   return (
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Pengumpulan Zakat Fitrah</h1>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => handleOpenModal('add')}
-        >
-          Tambah Pembayaran
-        </Button>
+        <h1 className="text-2xl font-bold text-gray-800">Pembayaran Zakat Fitrah</h1>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            icon={<FileDown size={16} />}
+            onClick={handlePrint}
+          >
+            Ekspor PDF
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => handleOpenModal('add')}
+          >
+            Tambah Pembayaran
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -257,11 +316,23 @@ const BayarZakatPage: React.FC = () => {
             data={zakatList}
             keyField="id_zakat"
             isLoading={isLoading}
-            emptyMessage="No zakat payment data available"
+            emptyMessage="Tidak ada data pembayaran zakat yang tersedia"
             onRowClick={(row) => handleOpenModal('view', row)}
           />
         </CardContent>
       </Card>
+
+      {/* Printable Content */}
+      <div className="hidden">
+        <div ref={printRef}>
+          <PrintableTable
+            title="Data Pembayaran Zakat"
+            columns={printColumns}
+            data={zakatList}
+            keyField="id_zakat"
+          />
+        </div>
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -388,10 +459,10 @@ const BayarZakatPage: React.FC = () => {
 
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" type="button" onClick={handleCloseModal}>
-              Cancel
+              Batal
             </Button>
             <Button variant="primary" type="submit">
-              {openModal === 'add' ? 'Simpan' : 'Update'}
+              {openModal === 'add' ? 'Simpan' : 'Perbarui'}
             </Button>
           </div>
         </form>
@@ -443,8 +514,8 @@ const BayarZakatPage: React.FC = () => {
               <Button variant="outline" onClick={handleCloseModal}>
                 Tutup
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => {
                   handleCloseModal();
                   handleOpenModal('edit', selectedZakat);
@@ -470,10 +541,10 @@ const BayarZakatPage: React.FC = () => {
         </p>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" onClick={handleCloseModal}>
-            Cancel
+            Batal
           </Button>
           <Button variant="danger" onClick={handleDelete}>
-            Delete
+            Hapus
           </Button>
         </div>
       </Modal>

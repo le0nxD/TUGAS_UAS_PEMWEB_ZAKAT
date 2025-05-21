@@ -25,7 +25,7 @@ function DataTable<T>({
   keyField,
   onRowClick,
   searchable = true,
-  emptyMessage = 'No data available',
+  emptyMessage = 'Tidak ada data yang tersedia',
   isLoading = false,
 }: DataTableProps<T>) {
   const [sortConfig, setSortConfig] = useState<{

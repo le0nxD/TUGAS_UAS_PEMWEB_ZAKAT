@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -6,9 +6,11 @@ import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { Database } from '../../lib/database.types';
 import supabase from '../../lib/supabase';
-import { Plus, Edit, Trash, Info } from 'lucide-react';
+import { Plus, Edit, Trash, Info, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Input from '../../components/ui/Input';
+import { useReactToPrint } from 'react-to-print';
+import PrintableTable from '../../components/ui/PrintableTable';
 
 type Muzakki = Database['public']['Tables']['muzakki']['Row'];
 type MuzakkiInsert = Database['public']['Tables']['muzakki']['Insert'];
@@ -18,6 +20,7 @@ const MuzakkiPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openModal, setOpenModal] = useState<'add' | 'edit' | 'view' | 'delete' | null>(null);
   const [selectedMuzakki, setSelectedMuzakki] = useState<Muzakki | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -39,6 +42,19 @@ const MuzakkiPage: React.FC = () => {
     }
   }, [selectedMuzakki, openModal, setValue]);
 
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Data_Muzakki_${new Date().toLocaleDateString('id-ID')}`,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        resolve();
+      });
+    },
+    onPrintError: () => {
+      toast.error('Gagal mengekspor PDF. Silakan coba lagi.');
+    },
+  });
+
   const fetchMuzakki = async () => {
     setIsLoading(true);
     try {
@@ -54,7 +70,7 @@ const MuzakkiPage: React.FC = () => {
       setMuzakkiList(data || []);
     } catch (error) {
       console.error('Error fetching muzakki:', error);
-      toast.error('Failed to fetch muzakki data');
+      toast.error('Gagal mengambil data muzakki');
     } finally {
       setIsLoading(false);
     }
@@ -86,20 +102,20 @@ const MuzakkiPage: React.FC = () => {
       if (openModal === 'add') {
         const { error } = await supabase.from('muzakki').insert([data]);
         if (error) throw error;
-        toast.success('Muzakki added successfully');
+        toast.success('Muzakki berhasil ditambahkan');
       } else if (openModal === 'edit' && selectedMuzakki) {
         const { error } = await supabase
           .from('muzakki')
           .update(data)
           .eq('id_muzakki', selectedMuzakki.id_muzakki);
         if (error) throw error;
-        toast.success('Muzakki updated successfully');
+        toast.success('Muzakki berhasil diperbarui');
       }
       fetchMuzakki();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving muzakki:', error);
-      toast.error('Failed to save muzakki data');
+      toast.error('Gagal menyimpan data muzakki');
     }
   };
 
@@ -111,14 +127,30 @@ const MuzakkiPage: React.FC = () => {
         .delete()
         .eq('id_muzakki', selectedMuzakki.id_muzakki);
       if (error) throw error;
-      toast.success('Muzakki deleted successfully');
+      toast.success('Muzakki berhasil dihapus');
       fetchMuzakki();
       handleCloseModal();
     } catch (error) {
       console.error('Error deleting muzakki:', error);
-      toast.error('Failed to delete muzakki');
+      toast.error('Gagal menghapus muzakki');
     }
   };
+
+  const printColumns = [
+    {
+      header: 'Nama Muzakki',
+      accessor: 'nama_muzakki',
+    },
+    {
+      header: 'Jumlah Tanggungan',
+      accessor: 'jumlah_tanggungan',
+    },
+    {
+      header: 'Keterangan',
+      accessor: 'keterangan',
+      cell: (row: Muzakki) => row.keterangan || '-',
+    },
+  ];
 
   const columns = [
     {
@@ -179,13 +211,22 @@ const MuzakkiPage: React.FC = () => {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Data Muzakki</h1>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => handleOpenModal('add')}
-        >
-          Tambah Muzakki
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            icon={<FileDown size={16} />}
+            onClick={handlePrint}
+          >
+            Ekspor PDF
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => handleOpenModal('add')}
+          >
+            Tambah Muzakki
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -195,11 +236,23 @@ const MuzakkiPage: React.FC = () => {
             data={muzakkiList}
             keyField="id_muzakki"
             isLoading={isLoading}
-            emptyMessage="No muzakki data available"
+            emptyMessage="Tidak ada data muzakki yang tersedia"
             onRowClick={(row) => handleOpenModal('view', row)}
           />
         </CardContent>
       </Card>
+
+      {/* Printable Content */}
+      <div className="hidden">
+        <div ref={printRef}>
+          <PrintableTable
+            title="Data Muzakki"
+            columns={printColumns}
+            data={muzakkiList}
+            keyField="id_muzakki"
+          />
+        </div>
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -244,10 +297,10 @@ const MuzakkiPage: React.FC = () => {
 
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" type="button" onClick={handleCloseModal}>
-              Cancel
+              Batal
             </Button>
             <Button variant="primary" type="submit">
-              {openModal === 'add' ? 'Simpan' : 'Update'}
+              {openModal === 'add' ? 'Simpan' : 'Perbarui'}
             </Button>
           </div>
         </form>
@@ -277,8 +330,8 @@ const MuzakkiPage: React.FC = () => {
               <Button variant="outline" onClick={handleCloseModal}>
                 Tutup
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => {
                   handleCloseModal();
                   handleOpenModal('edit', selectedMuzakki);
@@ -304,10 +357,10 @@ const MuzakkiPage: React.FC = () => {
         </p>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" onClick={handleCloseModal}>
-            Cancel
+            Batal
           </Button>
           <Button variant="danger" onClick={handleDelete}>
-            Delete
+            Hapus
           </Button>
         </div>
       </Modal>

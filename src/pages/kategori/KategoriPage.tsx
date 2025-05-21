@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -6,9 +6,11 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { Database } from '../../lib/database.types';
 import supabase from '../../lib/supabase';
-import { Plus, Edit, Trash, Info } from 'lucide-react';
+import { Plus, Edit, Trash, Info, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Input from '../../components/ui/Input';
+import { useReactToPrint } from 'react-to-print';
+import PrintableTable from '../../components/ui/PrintableTable';
 
 type KategoriMustahik = Database['public']['Tables']['kategori_mustahik']['Row'];
 type KategoriMustahikInsert = Database['public']['Tables']['kategori_mustahik']['Insert'];
@@ -18,6 +20,7 @@ const KategoriPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openModal, setOpenModal] = useState<'add' | 'edit' | 'view' | 'delete' | null>(null);
   const [selectedKategori, setSelectedKategori] = useState<KategoriMustahik | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -35,8 +38,22 @@ const KategoriPage: React.FC = () => {
     if (selectedKategori && (openModal === 'edit' || openModal === 'view')) {
       setValue('nama_kategori', selectedKategori.nama_kategori);
       setValue('jumlah_hak', selectedKategori.jumlah_hak);
+      setValue('keterangan', selectedKategori.keterangan || '');
     }
   }, [selectedKategori, openModal, setValue]);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Kategori_Mustahik_${new Date().toLocaleDateString('id-ID')}`,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        resolve();
+      });
+    },
+    onPrintError: () => {
+      toast.error('Gagal mengekspor PDF. Silakan coba lagi.');
+    },
+  });
 
   const fetchKategori = async () => {
     setIsLoading(true);
@@ -53,7 +70,7 @@ const KategoriPage: React.FC = () => {
       setKategoriList(data || []);
     } catch (error) {
       console.error('Error fetching kategori:', error);
-      toast.error('Failed to fetch kategori data');
+      toast.error('Gagal mengambil data kategori');
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +86,7 @@ const KategoriPage: React.FC = () => {
       reset({
         nama_kategori: '',
         jumlah_hak: 0,
+        keterangan: '',
       });
     }
   };
@@ -84,20 +102,20 @@ const KategoriPage: React.FC = () => {
       if (openModal === 'add') {
         const { error } = await supabase.from('kategori_mustahik').insert([data]);
         if (error) throw error;
-        toast.success('Kategori added successfully');
+        toast.success('Kategori berhasil ditambahkan');
       } else if (openModal === 'edit' && selectedKategori) {
         const { error } = await supabase
           .from('kategori_mustahik')
           .update(data)
           .eq('id_kategori', selectedKategori.id_kategori);
         if (error) throw error;
-        toast.success('Kategori updated successfully');
+        toast.success('Kategori berhasil diperbarui');
       }
       fetchKategori();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving kategori:', error);
-      toast.error('Failed to save kategori data');
+      toast.error('Gagal menyimpan data kategori');
     }
   };
 
@@ -109,14 +127,30 @@ const KategoriPage: React.FC = () => {
         .delete()
         .eq('id_kategori', selectedKategori.id_kategori);
       if (error) throw error;
-      toast.success('Kategori deleted successfully');
+      toast.success('Kategori berhasil dihapus');
       fetchKategori();
       handleCloseModal();
     } catch (error) {
       console.error('Error deleting kategori:', error);
-      toast.error('Failed to delete kategori');
+      toast.error('Gagal menghapus kategori');
     }
   };
+
+  const printColumns = [
+    {
+      header: 'Nama Kategori',
+      accessor: 'nama_kategori',
+    },
+    {
+      header: 'Jumlah Hak',
+      accessor: 'jumlah_hak',
+    },
+    {
+      header: 'Keterangan',
+      accessor: 'keterangan',
+      cell: (row: KategoriMustahik) => row.keterangan || '-',
+    },
+  ];
 
   const columns = [
     {
@@ -128,6 +162,12 @@ const KategoriPage: React.FC = () => {
       header: 'Jumlah Hak',
       accessor: 'jumlah_hak',
       sortable: true,
+    },
+    {
+      header: 'Keterangan',
+      accessor: 'keterangan',
+      sortable: true,
+      cell: (row: KategoriMustahik) => row.keterangan || '-',
     },
     {
       header: 'Actions',
@@ -169,13 +209,22 @@ const KategoriPage: React.FC = () => {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Kategori Mustahik</h1>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => handleOpenModal('add')}
-        >
-          Tambah Kategori
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            icon={<FileDown size={16} />}
+            onClick={handlePrint}
+          >
+            Ekspor PDF
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => handleOpenModal('add')}
+          >
+            Tambah Kategori
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -185,11 +234,23 @@ const KategoriPage: React.FC = () => {
             data={kategoriList}
             keyField="id_kategori"
             isLoading={isLoading}
-            emptyMessage="No kategori data available"
+            emptyMessage="Tidak ada data kategori yang tersedia"
             onRowClick={(row) => handleOpenModal('view', row)}
           />
         </CardContent>
       </Card>
+
+      {/* Printable Content */}
+      <div className="hidden">
+        <div ref={printRef}>
+          <PrintableTable
+            title="Data Kategori Mustahik"
+            columns={printColumns}
+            data={kategoriList}
+            keyField="id_kategori"
+          />
+        </div>
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -225,12 +286,20 @@ const KategoriPage: React.FC = () => {
             })}
           />
 
+          <Input
+            label="Keterangan"
+            placeholder="Masukkan keterangan (opsional)"
+            error={errors.keterangan?.message}
+            disabled={openModal === 'view'}
+            {...register('keterangan')}
+          />
+
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" type="button" onClick={handleCloseModal}>
-              Cancel
+              Batal
             </Button>
             <Button variant="primary" type="submit">
-              {openModal === 'add' ? 'Simpan' : 'Update'}
+              {openModal === 'add' ? 'Simpan' : 'Perbarui'}
             </Button>
           </div>
         </form>
@@ -251,6 +320,10 @@ const KategoriPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-medium text-gray-500">Jumlah Hak</h3>
               <p className="mt-1 text-lg">{selectedKategori.jumlah_hak}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Keterangan</h3>
+              <p className="mt-1 text-lg">{selectedKategori.keterangan || '-'}</p>
             </div>
             <div className="flex justify-end space-x-2 mt-6">
               <Button variant="outline" onClick={handleCloseModal}>
@@ -283,10 +356,10 @@ const KategoriPage: React.FC = () => {
         </p>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" onClick={handleCloseModal}>
-            Cancel
+            Batal
           </Button>
           <Button variant="danger" onClick={handleDelete}>
-            Delete
+            Hapus
           </Button>
         </div>
       </Modal>

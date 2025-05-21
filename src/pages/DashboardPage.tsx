@@ -277,7 +277,7 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-gray-800">Pengumpulan Zakat Fitrah</h2>
+              <h2 className="text-lg font-semibold text-gray-800">Pembayaran Zakat Fitrah</h2>
               <p className="text-sm text-gray-600 mt-1">
                 Tren pengumpulan zakat berdasarkan waktu dan jenis pembayaran
               </p>

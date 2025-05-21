@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -6,9 +6,11 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { Database } from '../../lib/database.types';
 import supabase from '../../lib/supabase';
-import { Plus, Edit, Trash, Info } from 'lucide-react';
+import { Plus, Edit, Trash, Info, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Input from '../../components/ui/Input';
+import { useReactToPrint } from 'react-to-print';
+import PrintableTable from '../../components/ui/PrintableTable';
 
 type MustahikWarga = Database['public']['Tables']['mustahik_warga']['Row'];
 type MustahikWargaInsert = Database['public']['Tables']['mustahik_warga']['Insert'];
@@ -20,6 +22,8 @@ const MustahikWargaPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openModal, setOpenModal] = useState<'add' | 'edit' | 'view' | 'delete' | null>(null);
   const [selectedMustahik, setSelectedMustahik] = useState<MustahikWarga | null>(null);
+  const [hakType, setHakType] = useState<'beras' | 'uang'>('beras');
+  const printRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -31,6 +35,8 @@ const MustahikWargaPage: React.FC = () => {
   } = useForm<MustahikWargaInsert>();
 
   const selectedKategori = watch('kategori');
+  const hakValue = watch('hak');
+  const exchangeRate = 15000; // Nilai tukar beras ke rupiah (1 kg = Rp 15.000)
 
   useEffect(() => {
     fetchData();
@@ -41,18 +47,41 @@ const MustahikWargaPage: React.FC = () => {
       setValue('nama', selectedMustahik.nama);
       setValue('kategori', selectedMustahik.kategori);
       setValue('hak', selectedMustahik.hak);
+      
+      // Determine hak type based on kategori
+      const kategori = kategoriList.find(k => k.nama_kategori === selectedMustahik.kategori);
+      if (kategori) {
+        setHakType(kategori.jumlah_hak >= 1000 ? 'uang' : 'beras');
+      }
     }
-  }, [selectedMustahik, openModal, setValue]);
+  }, [selectedMustahik, openModal, setValue, kategoriList]);
 
   // Update hak value when kategori changes
   useEffect(() => {
     if (selectedKategori && kategoriList.length > 0) {
       const kategori = kategoriList.find(k => k.nama_kategori === selectedKategori);
       if (kategori) {
-        setValue('hak', kategori.jumlah_hak);
+        if (hakType === 'beras') {
+          setValue('hak', kategori.jumlah_hak);
+        } else {
+          setValue('hak', kategori.jumlah_hak * exchangeRate);
+        }
       }
     }
-  }, [selectedKategori, kategoriList, setValue]);
+  }, [selectedKategori, kategoriList, setValue, hakType, exchangeRate]);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Data_Mustahik_Warga_${new Date().toLocaleDateString('id-ID')}`,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        resolve();
+      });
+    },
+    onPrintError: () => {
+      toast.error('Gagal mengekspor PDF. Silakan coba lagi.');
+    },
+  });
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -76,7 +105,7 @@ const MustahikWargaPage: React.FC = () => {
       setKategoriList(kategoriData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to fetch data');
+      toast.error('Gagal mengambil data');
     } finally {
       setIsLoading(false);
     }
@@ -92,8 +121,9 @@ const MustahikWargaPage: React.FC = () => {
       reset({
         nama: '',
         kategori: '',
-        hak: 0,
+        hak: '',
       });
+      setHakType('beras');
     }
   };
 
@@ -103,25 +133,60 @@ const MustahikWargaPage: React.FC = () => {
     reset();
   };
 
+  const formatHak = (value: number) => {
+    const kategori = kategoriList.find(k => k.jumlah_hak === value || k.jumlah_hak * exchangeRate === value);
+    if (kategori) {
+      if (kategori.jumlah_hak >= 1000) {
+        return new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value);
+      } else {
+        return `${value} kg`;
+      }
+    }
+    return value >= 1000 
+      ? new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value)
+      : `${value} kg`;
+  };
+
   const onSubmit = async (data: MustahikWargaInsert) => {
     try {
+      // Ensure hak is a numeric value
+      const hakNumeric = parseFloat(String(data.hak));
+      if (isNaN(hakNumeric)) {
+        throw new Error('Hak harus berupa angka');
+      }
+
+      const submitData = {
+        ...data,
+        hak: hakNumeric,
+      };
+
       if (openModal === 'add') {
-        const { error } = await supabase.from('mustahik_warga').insert([data]);
+        const { error } = await supabase.from('mustahik_warga').insert([submitData]);
         if (error) throw error;
-        toast.success('Mustahik warga added successfully');
+        toast.success('Mustahik warga berhasil ditambahkan');
       } else if (openModal === 'edit' && selectedMustahik) {
         const { error } = await supabase
           .from('mustahik_warga')
-          .update(data)
+          .update(submitData)
           .eq('id_mustahikwarga', selectedMustahik.id_mustahikwarga);
         if (error) throw error;
-        toast.success('Mustahik warga updated successfully');
+        toast.success('Mustahik warga berhasil diperbarui');
       }
       fetchData();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving mustahik warga:', error);
-      toast.error('Failed to save mustahik warga data');
+      toast.error('Gagal menyimpan data mustahik warga');
     }
   };
 
@@ -133,14 +198,30 @@ const MustahikWargaPage: React.FC = () => {
         .delete()
         .eq('id_mustahikwarga', selectedMustahik.id_mustahikwarga);
       if (error) throw error;
-      toast.success('Mustahik warga deleted successfully');
+      toast.success('Mustahik warga berhasil dihapus');
       fetchData();
       handleCloseModal();
     } catch (error) {
       console.error('Error deleting mustahik warga:', error);
-      toast.error('Failed to delete mustahik warga');
+      toast.error('Gagal menghapus mustahik warga');
     }
   };
+
+  const printColumns = [
+    {
+      header: 'Nama',
+      accessor: 'nama',
+    },
+    {
+      header: 'Kategori',
+      accessor: 'kategori',
+    },
+    {
+      header: 'Hak',
+      accessor: 'hak',
+      cell: (row: MustahikWarga) => formatHak(row.hak),
+    },
+  ];
 
   const columns = [
     {
@@ -157,6 +238,7 @@ const MustahikWargaPage: React.FC = () => {
       header: 'Hak',
       accessor: 'hak',
       sortable: true,
+      cell: (row: MustahikWarga) => formatHak(row.hak),
     },
     {
       header: 'Actions',
@@ -198,13 +280,22 @@ const MustahikWargaPage: React.FC = () => {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Distribusi Zakat Fitrah Warga</h1>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => handleOpenModal('add')}
-        >
-          Tambah Mustahik Warga
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            icon={<FileDown size={16} />}
+            onClick={handlePrint}
+          >
+            Ekspor PDF
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => handleOpenModal('add')}
+          >
+            Tambah Mustahik Warga
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -214,11 +305,23 @@ const MustahikWargaPage: React.FC = () => {
             data={mustahikList}
             keyField="id_mustahikwarga"
             isLoading={isLoading}
-            emptyMessage="No mustahik warga data available"
+            emptyMessage="Tidak ada data mustahik warga yang tersedia"
             onRowClick={(row) => handleOpenModal('view', row)}
           />
         </CardContent>
       </Card>
+
+      {/* Printable Content */}
+      <div className="hidden">
+        <div ref={printRef}>
+          <PrintableTable
+            title="Data Mustahik"
+            columns={printColumns}
+            data={mustahikList}
+            keyField="id_mustahikwarga"
+          />
+        </div>
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -260,29 +363,57 @@ const MustahikWargaPage: React.FC = () => {
             )}
           </div>
 
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Jenis Hak
+            </label>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio text-primary-600"
+                  checked={hakType === 'beras'}
+                  onChange={() => setHakType('beras')}
+                  disabled={openModal === 'view'}
+                />
+                <span className="ml-2">Beras</span>
+              </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio text-primary-600"
+                  checked={hakType === 'uang'}
+                  onChange={() => setHakType('uang')}
+                  disabled={openModal === 'view'}
+                />
+                <span className="ml-2">Uang</span>
+              </label>
+            </div>
+          </div>
+
           <Input
-            label="Hak"
+            label={hakType === 'beras' ? 'Hak (kg)' : 'Hak (Rp)'}
             type="number"
-            step="0.01"
-            placeholder="Hak akan otomatis terisi berdasarkan kategori"
+            step={hakType === 'beras' ? '0.1' : '1'}
+            placeholder={hakType === 'beras' ? 'Masukkan jumlah beras (kg)' : 'Masukkan jumlah uang (Rp)'}
             error={errors.hak?.message}
-            disabled={true}
+            disabled={openModal === 'view'}
             {...register('hak', {
               required: 'Hak mustahik harus diisi',
-              valueAsNumber: true,
               min: {
                 value: 0,
                 message: 'Hak tidak boleh negatif',
               },
+              valueAsNumber: true,
             })}
           />
 
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" type="button" onClick={handleCloseModal}>
-              Cancel
+              Batal
             </Button>
             <Button variant="primary" type="submit">
-              {openModal === 'add' ? 'Simpan' : 'Update'}
+              {openModal === 'add' ? 'Simpan' : 'Perbarui'}
             </Button>
           </div>
         </form>
@@ -306,14 +437,14 @@ const MustahikWargaPage: React.FC = () => {
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500">Hak</h3>
-              <p className="mt-1 text-lg">{selectedMustahik.hak}</p>
+              <p className="mt-1 text-lg">{formatHak(selectedMustahik.hak)}</p>
             </div>
             <div className="flex justify-end space-x-2 mt-6">
               <Button variant="outline" onClick={handleCloseModal}>
                 Tutup
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => {
                   handleCloseModal();
                   handleOpenModal('edit', selectedMustahik);
@@ -339,10 +470,10 @@ const MustahikWargaPage: React.FC = () => {
         </p>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" onClick={handleCloseModal}>
-            Cancel
+            Batal
           </Button>
           <Button variant="danger" onClick={handleDelete}>
-            Delete
+            Hapus
           </Button>
         </div>
       </Modal>

@@ -38,7 +38,7 @@ Aplikasi web donasi full-stack yang dibangun untuk kesederhanaan, kecepatan, dan
 
 ## 📌 Ringkasan
 
-**Obligatory Charity** menyederhanakan proses donasi melalui pengalaman web yang mulus. Dengan komponen antarmuka modern, autentikasi yang aman, dan sistem manajemen donasi yang kuat, aplikasi ini dirancang untuk memberdayakan baik donatur maupun administrator.
+**Sistem Pengelolaan Zakat** menyederhanakan proses donasi melalui pengalaman web yang mulus. Dengan komponen antarmuka modern, autentikasi yang aman, dan sistem manajemen donasi yang kuat, aplikasi ini dirancang untuk memberdayakan baik donatur maupun administrator.
 
 ---
 

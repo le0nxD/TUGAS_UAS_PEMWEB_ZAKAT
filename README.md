@@ -1,7 +1,3 @@
-Berikut adalah versi README yang sudah diperbarui dalam Bahasa Indonesia dengan **bagian tutorial register dan login untuk pengguna ditambahkan di atas**, setelah bagian pembuat. Saya sertakan subjudul baru **👥 Panduan Pengguna: Registrasi & Login**:
-
----
-
 # 🕌 Sistem Pengelolaan Zakat
 
 Dibuat dengan ❤️ oleh:

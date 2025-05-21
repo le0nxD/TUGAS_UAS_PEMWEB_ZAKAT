@@ -1,9 +1,9 @@
 # 🕌 Sistem Pengelolaan Zakat
 
 Dibuat dengan ❤️ oleh:
-*[237006152 Muhammad Naufal Darlian](https://github.com/le0nxD)
-*[237006176 Ardhi Fardan Kamil](https://github.com/Kai2446-cmyk)
-*[237006179 Muhammad Lutfi Nurhakim](https://github.com/Oxiliya)
+* **[237006152 Muhammad Naufal Darlian](https://github.com/le0nxD)**
+* **[237006176 Ardhi Fardan Kamil](https://github.com/Kai2446-cmyk)**
+* **[237006179 Muhammad Lutfi Nurhakim](https://github.com/Oxiliya)**
 
 Kontribusi dan masukan sangat diterima!
 

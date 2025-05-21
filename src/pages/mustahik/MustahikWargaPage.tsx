@@ -14,7 +14,8 @@ import PrintableTable from '../../components/ui/PrintableTable';
 
 type MustahikWarga = Database['public']['Tables']['mustahik_warga']['Row'];
 type MustahikWargaInsert = Database['public']['Tables']['mustahik_warga']['Insert'];
-type KategoriMustahik = Database['public']['Tables']['kategori_mustahik']['Row'];
+// Menyesuaikan KategoriMustahik agar bisa memiliki 'jumlah_hak_type' untuk logika yang lebih baik
+type KategoriMustahik = Database['public']['Tables']['kategori_mustahik']['Row'] & { jumlah_hak_type?: 'beras' | 'uang' };
 
 const MustahikWargaPage: React.FC = () => {
   const [mustahikList, setMustahikList] = useState<MustahikWarga[]>([]);
@@ -22,7 +23,7 @@ const MustahikWargaPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openModal, setOpenModal] = useState<'add' | 'edit' | 'view' | 'delete' | null>(null);
   const [selectedMustahik, setSelectedMustahik] = useState<MustahikWarga | null>(null);
-  const [hakType, setHakType] = useState<'beras' | 'uang'>('beras');
+  const [hakType, setHakType] = useState<'beras' | 'uang'>('beras'); // Default jenis hak
   const printRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -32,52 +33,97 @@ const MustahikWargaPage: React.FC = () => {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<MustahikWargaInsert>();
+  } = useForm<MustahikWargaInsert>({
+    defaultValues: { // Menambahkan default values
+      nama: '',
+      kategori: '',
+      hak: 0, // Default value untuk hak
+    },
+  });
 
-  const selectedKategori = watch('kategori');
-  const hakValue = watch('hak');
+  const formKategori = watch('kategori'); // Mengawasi field 'kategori' dari form
+  // const formHak = watch('hak'); // Bisa digunakan jika perlu memantau nilai hak secara langsung
+
   const exchangeRate = 15000; // Nilai tukar beras ke rupiah (1 kg = Rp 15.000)
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  // Efek untuk mengisi form saat mode edit atau view
   useEffect(() => {
     if (selectedMustahik && (openModal === 'edit' || openModal === 'view')) {
-      setValue('nama', selectedMustahik.nama);
-      setValue('kategori', selectedMustahik.kategori);
-      setValue('hak', selectedMustahik.hak);
-      
-      // Determine hak type based on kategori
-      const kategori = kategoriList.find(k => k.nama_kategori === selectedMustahik.kategori);
-      if (kategori) {
-        setHakType(kategori.jumlah_hak >= 1000 ? 'uang' : 'beras');
-      }
-    }
-  }, [selectedMustahik, openModal, setValue, kategoriList]);
+      reset({ // Menggunakan reset untuk mengisi semua field form
+        nama: selectedMustahik.nama,
+        kategori: selectedMustahik.kategori,
+        hak: selectedMustahik.hak, // Ini adalah nilai hak yang sudah tersimpan
+      });
 
-  // Update hak value when kategori changes
-  useEffect(() => {
-    if (selectedKategori && kategoriList.length > 0) {
-      const kategori = kategoriList.find(k => k.nama_kategori === selectedKategori);
-      if (kategori) {
-        if (hakType === 'beras') {
-          setValue('hak', kategori.jumlah_hak);
+      // Menentukan dan mengatur hakType berdasarkan data yang dimuat
+      const kategoriInfo = kategoriList.find(k => k.nama_kategori === selectedMustahik.kategori);
+      let determinedHakType: 'beras' | 'uang' = 'beras'; // Default
+
+      if (kategoriInfo && typeof selectedMustahik.hak === 'number') {
+        const hakKategoriAsBeras = kategoriInfo.jumlah_hak;
+        const hakKategoriAsUang = kategoriInfo.jumlah_hak * exchangeRate;
+
+        // Coba tebak hakType berdasarkan nilai hak yang tersimpan
+        // Logika ini mengasumsikan bahwa jika nilai hak cocok dengan konversi uang DAN berbeda dari nilai berasnya, itu adalah uang.
+        if (selectedMustahik.hak === hakKategoriAsUang && hakKategoriAsBeras !== hakKategoriAsUang) {
+          determinedHakType = 'uang';
+        } else if (selectedMustahik.hak === hakKategoriAsBeras) {
+          determinedHakType = 'beras';
         } else {
-          setValue('hak', kategori.jumlah_hak * exchangeRate);
+          // Fallback jika ada override manual atau kategori memang dalam uang
+          // Jika ada 'jumlah_hak_type' di kategoriList, itu akan lebih akurat
+          if (kategoriInfo.jumlah_hak_type === 'uang') {
+            determinedHakType = 'uang';
+          } else if (kategoriInfo.jumlah_hak_type === 'beras') {
+            determinedHakType = 'beras';
+          // Heuristik tambahan: jika nilai hak cukup besar (misal >= 1000) dan tidak cocok dengan nilai beras, anggap uang
+          } else if (selectedMustahik.hak > hakKategoriAsBeras && selectedMustahik.hak >= 1000) {
+            determinedHakType = 'uang';
+          }
+          // Jika masih ambigu, biarkan default (beras) atau sesuaikan dengan kebutuhan
         }
+      } else if (typeof selectedMustahik.hak === 'number' && selectedMustahik.hak >= 1000) {
+        // Jika tidak ada info kategori, tebak dari besaran hak (ambang batas sederhana untuk uang)
+        determinedHakType = 'uang';
       }
+      setHakType(determinedHakType);
     }
-  }, [selectedKategori, kategoriList, setValue, hakType, exchangeRate]);
+  }, [selectedMustahik, openModal, reset, kategoriList, exchangeRate]);
+
+
+  // Efek untuk menghitung ulang 'hak' secara otomatis ketika 'kategori' form atau 'hakType' state berubah
+  useEffect(() => {
+    if (openModal === 'view') return; // Tidak perlu kalkulasi di mode view
+
+    if (formKategori && kategoriList.length > 0) {
+      const kategoriTerpilih = kategoriList.find(k => k.nama_kategori === formKategori);
+      if (kategoriTerpilih) {
+        let calculatedHak;
+        if (hakType === 'beras') {
+          calculatedHak = kategoriTerpilih.jumlah_hak;
+        } else { // hakType === 'uang'
+          calculatedHak = kategoriTerpilih.jumlah_hak * exchangeRate;
+        }
+        // Parameter ketiga { shouldDirty: true, shouldValidate: true } penting agar form dianggap "dirty"
+        // dan validasi (jika ada) dijalankan setelah nilai diubah secara programatik.
+        setValue('hak', calculatedHak, { shouldDirty: true, shouldValidate: true });
+      } else {
+        // setValue('hak', 0, { shouldDirty: true, shouldValidate: true });
+      }
+    } else if (!formKategori && (openModal === 'add' || openModal === 'edit')) {
+      // Jika kategori belum dipilih atau dikosongkan, set hak ke 0 atau nilai default
+      setValue('hak', 0, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [formKategori, hakType, kategoriList, setValue, exchangeRate, openModal]);
+
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: `Data_Mustahik_Warga_${new Date().toLocaleDateString('id-ID')}`,
-    onBeforeGetContent: () => {
-      return new Promise((resolve) => {
-        resolve();
-      });
-    },
     onPrintError: () => {
       toast.error('Gagal mengekspor PDF. Silakan coba lagi.');
     },
@@ -118,57 +164,77 @@ const MustahikWargaPage: React.FC = () => {
     setSelectedMustahik(mustahik);
     setOpenModal(type);
     if (type === 'add') {
-      reset({
+      reset({ // Reset form ke nilai default
         nama: '',
         kategori: '',
-        hak: '',
+        hak: 0,
       });
-      setHakType('beras');
+      setHakType('beras'); // Set default jenis hak untuk entri baru
     }
+    // Untuk 'edit', useEffect [selectedMustahik] akan mengisi form
   };
 
   const handleCloseModal = () => {
     setOpenModal(null);
     setSelectedMustahik(null);
-    reset();
+    reset(); // Reset form ke nilai default saat modal ditutup
   };
 
-  const formatHak = (value: number) => {
-    const kategori = kategoriList.find(k => k.jumlah_hak === value || k.jumlah_hak * exchangeRate === value);
-    if (kategori) {
-      if (kategori.jumlah_hak >= 1000) {
-        return new Intl.NumberFormat('id-ID', {
-          style: 'currency',
-          currency: 'IDR',
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(value);
-      } else {
-        return `${value} kg`;
-      }
+  const formatHakForDisplay = (value: number | string | null | undefined, kategoriNama?: string | null): string => {
+    if (value === null || value === undefined || value === '') return '-';
+    const numericValue = Number(value);
+    if (isNaN(numericValue)) return String(value);
+
+    let isUang = false;
+    const kategoriDef = kategoriList.find(k => k.nama_kategori === kategoriNama);
+
+    if (kategoriDef) {
+        if (kategoriDef.jumlah_hak_type === 'uang') {
+            isUang = true;
+        } else if (kategoriDef.jumlah_hak_type === 'beras') {
+            isUang = false;
+        } else {
+            const hakKategoriAsBeras = kategoriDef.jumlah_hak;
+            const hakKategoriAsUang = kategoriDef.jumlah_hak * exchangeRate;
+            // Jika nilai sama dengan konversi uang dan BEDA dengan nilai beras asli, maka itu uang
+            if (numericValue === hakKategoriAsUang && numericValue !== hakKategoriAsBeras) {
+                isUang = true;
+            // Jika nilai sama dengan nilai beras asli
+            } else if (numericValue === hakKategoriAsBeras) {
+                isUang = false;
+            // Fallback: Jika nilai berbeda dari hak beras asli DAN cukup besar (>=1000), anggap uang
+            } else if (numericValue !== hakKategoriAsBeras && numericValue >= 1000) {
+                isUang = true;
+            } else {
+                // Default tebakan jika masih ambigu (misal nilai kecil tapi bukan hak beras asli)
+                isUang = numericValue >= 1000; // Atau `false` jika ingin default ke beras
+            }
+        }
+    } else {
+        // Kategori tidak ditemukan, tebak murni dari nilai
+        isUang = numericValue >= 1000;
     }
-    return value >= 1000 
-      ? new Intl.NumberFormat('id-ID', {
-          style: 'currency',
-          currency: 'IDR',
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(value)
-      : `${value} kg`;
+
+    if (isUang) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0,
+      }).format(numericValue);
+    } else {
+      // Tampilkan satu desimal jika bukan integer, jika integer tampilkan tanpa desimal
+      return `${Number.isInteger(numericValue) ? numericValue : numericValue.toFixed(1)} kg`;
+    }
   };
+
 
   const onSubmit = async (data: MustahikWargaInsert) => {
     try {
-      // Ensure hak is a numeric value
       const hakNumeric = parseFloat(String(data.hak));
       if (isNaN(hakNumeric)) {
-        throw new Error('Hak harus berupa angka');
+        toast.error('Nilai hak tidak valid.');
+        return;
       }
 
-      const submitData = {
-        ...data,
-        hak: hakNumeric,
-      };
+      const submitData = { ...data, hak: hakNumeric };
 
       if (openModal === 'add') {
         const { error } = await supabase.from('mustahik_warga').insert([submitData]);
@@ -186,7 +252,7 @@ const MustahikWargaPage: React.FC = () => {
       handleCloseModal();
     } catch (error) {
       console.error('Error saving mustahik warga:', error);
-      toast.error('Gagal menyimpan data mustahik warga');
+      toast.error(`Gagal menyimpan: ${error instanceof Error ? error.message : 'Kesalahan tidak diketahui'}`);
     }
   };
 
@@ -208,69 +274,22 @@ const MustahikWargaPage: React.FC = () => {
   };
 
   const printColumns = [
-    {
-      header: 'Nama',
-      accessor: 'nama',
-    },
-    {
-      header: 'Kategori',
-      accessor: 'kategori',
-    },
-    {
-      header: 'Hak',
-      accessor: 'hak',
-      cell: (row: MustahikWarga) => formatHak(row.hak),
-    },
+    { header: 'Nama', accessor: 'nama' },
+    { header: 'Kategori', accessor: 'kategori' },
+    { header: 'Hak', accessor: 'hak', cell: (row: MustahikWarga) => formatHakForDisplay(row.hak, row.kategori) },
   ];
 
   const columns = [
-    {
-      header: 'Nama',
-      accessor: 'nama',
-      sortable: true,
-    },
-    {
-      header: 'Kategori',
-      accessor: 'kategori',
-      sortable: true,
-    },
-    {
-      header: 'Hak',
-      accessor: 'hak',
-      sortable: true,
-      cell: (row: MustahikWarga) => formatHak(row.hak),
-    },
+    { header: 'Nama', accessor: 'nama', sortable: true },
+    { header: 'Kategori', accessor: 'kategori', sortable: true },
+    { header: 'Hak', accessor: 'hak', sortable: true, cell: (row: MustahikWarga) => formatHakForDisplay(row.hak, row.kategori) },
     {
       header: 'Actions',
       accessor: (row: MustahikWarga) => (
         <div className="flex space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Info size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenModal('view', row);
-            }}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Edit size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenModal('edit', row);
-            }}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Trash size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenModal('delete', row);
-            }}
-          />
+          <Button variant="ghost" size="sm" icon={<Info size={16} />} onClick={(e) => { e.stopPropagation(); handleOpenModal('view', row); }} />
+          <Button variant="ghost" size="sm" icon={<Edit size={16} />} onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', row); }} />
+          <Button variant="ghost" size="sm" icon={<Trash size={16} />} onClick={(e) => { e.stopPropagation(); handleOpenModal('delete', row); }} />
         </div>
       ),
     },
@@ -281,18 +300,10 @@ const MustahikWargaPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Distribusi Zakat Fitrah Warga</h1>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            icon={<FileDown size={16} />}
-            onClick={handlePrint}
-          >
+          <Button variant="outline" icon={<FileDown size={16} />} onClick={handlePrint} disabled={mustahikList.length === 0}>
             Ekspor PDF
           </Button>
-          <Button
-            variant="primary"
-            icon={<Plus size={16} />}
-            onClick={() => handleOpenModal('add')}
-          >
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => handleOpenModal('add')}>
             Tambah Mustahik Warga
           </Button>
         </div>
@@ -303,7 +314,7 @@ const MustahikWargaPage: React.FC = () => {
           <DataTable
             columns={columns}
             data={mustahikList}
-            keyField="id_mustahikwarga"
+            keyField="id_mustahikwarga" // Disesuaikan
             isLoading={isLoading}
             emptyMessage="Tidak ada data mustahik warga yang tersedia"
             onRowClick={(row) => handleOpenModal('view', row)}
@@ -315,10 +326,10 @@ const MustahikWargaPage: React.FC = () => {
       <div className="hidden">
         <div ref={printRef}>
           <PrintableTable
-            title="Data Mustahik"
+            title="Data Mustahik Warga" // Disesuaikan
             columns={printColumns}
             data={mustahikList}
-            keyField="id_mustahikwarga"
+            keyField="id_mustahikwarga" // Disesuaikan
           />
         </div>
       </div>
@@ -329,27 +340,26 @@ const MustahikWargaPage: React.FC = () => {
         onClose={handleCloseModal}
         title={openModal === 'add' ? 'Tambah Mustahik Warga' : 'Edit Mustahik Warga'}
       >
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4"> {/* Menambahkan space-y-4 */}
           <Input
             label="Nama"
             placeholder="Masukkan nama mustahik"
             error={errors.nama?.message}
-            disabled={openModal === 'view'}
+            disabled={openModal === 'view'} // Seharusnya tidak ada 'view' di sini, tapi untuk konsistensi
             {...register('nama', {
               required: 'Nama mustahik harus diisi',
             })}
           />
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Kategori
-            </label>
+          <div> {/* Mengganti className mb-4 dengan div untuk spacing dari form */}
+            <label htmlFor="kategori" className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              id="kategori" // Menambahkan id untuk htmlFor
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              disabled={openModal === 'view'} // Seharusnya tidak ada 'view' di sini
               {...register('kategori', {
                 required: 'Kategori mustahik harus dipilih',
               })}
-              disabled={openModal === 'view'}
             >
               <option value="">Pilih Kategori</option>
               {kategoriList.map((kategori) => (
@@ -359,22 +369,22 @@ const MustahikWargaPage: React.FC = () => {
               ))}
             </select>
             {errors.kategori && (
-              <p className="mt-1 text-sm text-error-600">{errors.kategori.message}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.kategori.message}</p> // Mengganti text-error-600
             )}
           </div>
 
-          <div className="mb-4">
+          <div> {/* Mengganti className mb-4 */}
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Jenis Hak
             </label>
-            <div className="flex gap-4">
+            <div className="flex gap-x-4"> {/* Mengganti gap-4 menjadi gap-x-4 */}
               <label className="inline-flex items-center">
                 <input
                   type="radio"
                   className="form-radio text-primary-600"
                   checked={hakType === 'beras'}
                   onChange={() => setHakType('beras')}
-                  disabled={openModal === 'view'}
+                  disabled={openModal === 'view'} // Seharusnya tidak ada 'view' di sini
                 />
                 <span className="ml-2">Beras</span>
               </label>
@@ -384,7 +394,7 @@ const MustahikWargaPage: React.FC = () => {
                   className="form-radio text-primary-600"
                   checked={hakType === 'uang'}
                   onChange={() => setHakType('uang')}
-                  disabled={openModal === 'view'}
+                  disabled={openModal === 'view'} // Seharusnya tidak ada 'view' di sini
                 />
                 <span className="ml-2">Uang</span>
               </label>
@@ -394,25 +404,38 @@ const MustahikWargaPage: React.FC = () => {
           <Input
             label={hakType === 'beras' ? 'Hak (kg)' : 'Hak (Rp)'}
             type="number"
-            step={hakType === 'beras' ? '0.1' : '1'}
+            step={hakType === 'beras' ? '0.1' : '1'} // step 0.1 untuk beras agar bisa desimal
             placeholder={hakType === 'beras' ? 'Masukkan jumlah beras (kg)' : 'Masukkan jumlah uang (Rp)'}
             error={errors.hak?.message}
-            disabled={openModal === 'view'}
+            disabled={openModal === 'view'} // Seharusnya tidak ada 'view' di sini
             {...register('hak', {
               required: 'Hak mustahik harus diisi',
+              valueAsNumber: true, // Penting untuk konversi ke number
               min: {
                 value: 0,
                 message: 'Hak tidak boleh negatif',
               },
-              valueAsNumber: true,
             })}
           />
+          {/* Menampilkan nilai otomatis */}
+          { (formKategori && hakType && openModal !== 'view' ) &&
+            <p className="text-xs text-gray-500 -mt-2"> {/* Penyesuaian style agar tidak terlalu jauh */}
+              Otomatis: {
+                (() => {
+                  const kat = kategoriList.find(k => k.nama_kategori === formKategori);
+                  if (!kat) return '-';
+                  const nilaiOtomatis = hakType === 'beras' ? kat.jumlah_hak : kat.jumlah_hak * exchangeRate;
+                  return formatHakForDisplay(nilaiOtomatis, formKategori); // Gunakan formatHakForDisplay
+                })()
+              }
+            </p>
+          }
 
-          <div className="flex justify-end space-x-2 mt-6">
+          <div className="flex justify-end space-x-2 pt-2"> {/* Mengganti mt-6 dengan pt-2 */}
             <Button variant="outline" type="button" onClick={handleCloseModal}>
               Batal
             </Button>
-            <Button variant="primary" type="submit">
+            <Button variant="primary" type="submit" disabled={isLoading}>
               {openModal === 'add' ? 'Simpan' : 'Perbarui'}
             </Button>
           </div>
@@ -426,27 +449,18 @@ const MustahikWargaPage: React.FC = () => {
         title="Detail Mustahik Warga"
       >
         {selectedMustahik && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Nama</h3>
-              <p className="mt-1 text-lg">{selectedMustahik.nama}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Kategori</h3>
-              <p className="mt-1 text-lg">{selectedMustahik.kategori}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Hak</h3>
-              <p className="mt-1 text-lg">{formatHak(selectedMustahik.hak)}</p>
-            </div>
-            <div className="flex justify-end space-x-2 mt-6">
+          <div className="space-y-3"> {/* Mengganti space-y-4 */}
+            <div><h3 className="text-sm font-medium text-gray-500">Nama</h3><p className="mt-1 text-base">{selectedMustahik.nama}</p></div>
+            <div><h3 className="text-sm font-medium text-gray-500">Kategori</h3><p className="mt-1 text-base">{selectedMustahik.kategori}</p></div>
+            <div><h3 className="text-sm font-medium text-gray-500">Hak Diterima</h3><p className="mt-1 text-base">{formatHakForDisplay(selectedMustahik.hak, selectedMustahik.kategori)}</p></div>
+            <div className="flex justify-end space-x-2 pt-3"> {/* Mengganti mt-6 */}
               <Button variant="outline" onClick={handleCloseModal}>
                 Tutup
               </Button>
               <Button
                 variant="primary"
                 onClick={() => {
-                  handleCloseModal();
+                  // handleCloseModal(); // Tidak perlu close dulu jika langsung edit
                   handleOpenModal('edit', selectedMustahik);
                 }}
               >
@@ -472,7 +486,7 @@ const MustahikWargaPage: React.FC = () => {
           <Button variant="outline" onClick={handleCloseModal}>
             Batal
           </Button>
-          <Button variant="danger" onClick={handleDelete}>
+          <Button variant="danger" onClick={handleDelete} disabled={isLoading}>
             Hapus
           </Button>
         </div>

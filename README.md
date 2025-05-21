@@ -1,6 +1,6 @@
 ---
 
-# 🕌 Obligatory Charity
+# 🕌 Sistem Pengelolaan Zakat
 
 A full-stack donation web app built for simplicity, speed, and scalability.
 

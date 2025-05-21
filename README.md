@@ -72,7 +72,7 @@ Licensed under the [MIT License](./LICENSE)
 
 Crafted with ❤️ by 
 [237006152 Muhammad Naufal Darlian](https://github.com/le0nxD)
-[237006176 Ardhi Fardan Kamil](https://github.com/le0nxD)  
+[237006176 Ardhi Fardan Kamil](https://github.com/Kai2446-cmyk)
 [237006179 Muhammad Lutfi Nurhakim](https://github.com/Oxiliya) 
 
 Contributions and feedback are always welcome!

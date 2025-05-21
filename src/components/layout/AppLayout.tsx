@@ -28,8 +28,8 @@ const AppLayout: React.FC = () => {
   const navItems = [
     { path: '/', icon: <Home className="w-5 h-5" />, label: 'Dashboard' },
     { path: '/muzakki', icon: <Users className="w-5 h-5" />, label: 'Muzakki' },
-    { path: '/kategori-mustahik', icon: <Database className="w-5 h-5" />, label: 'Kategori Mustahik' },
     { path: '/bayar-zakat', icon: <DollarSign className="w-5 h-5" />, label: 'Pengumpulan Zakat' },
+    { path: '/kategori-mustahik', icon: <Database className="w-5 h-5" />, label: 'Kategori Mustahik' },
     { path: '/distribusi-warga', icon: <Users className="w-5 h-5" />, label: 'Distribusi Warga' },
     { path: '/distribusi-lainnya', icon: <Users className="w-5 h-5" />, label: 'Distribusi Lainnya' },
   ];

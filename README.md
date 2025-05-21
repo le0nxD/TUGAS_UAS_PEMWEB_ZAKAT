@@ -1,80 +1,107 @@
+Berikut adalah versi README yang sudah diperbarui dalam Bahasa Indonesia dengan **bagian tutorial register dan login untuk pengguna ditambahkan di atas**, setelah bagian pembuat. Saya sertakan subjudul baru **👥 Panduan Pengguna: Registrasi & Login**:
+
 ---
 
 # 🕌 Sistem Pengelolaan Zakat
 
-A full-stack donation web app built for simplicity, speed, and scalability.
+Dibuat dengan ❤️ oleh:
+[237006152 Muhammad Naufal Darlian](https://github.com/le0nxD)
+[237006176 Ardhi Fardan Kamil](https://github.com/Kai2446-cmyk)
+[237006179 Muhammad Lutfi Nurhakim](https://github.com/Oxiliya)
+
+Kontribusi dan masukan sangat diterima!
 
 ---
 
-## 📌 Overview
+## 👥 Panduan Pengguna: Registrasi & Login
 
-**Obligatory Charity** streamlines the donation process through a seamless web experience. With modern UI components, secure authentication, and robust donation management, it's built to empower donors and administrators alike.
+### 📝 Registrasi (Daftar Akun)
+
+1. Buka aplikasi di: [manajemen-zakat.vercel.app/](manajemen-zakat.vercel.app/)
+2. Klik tombol **"Register"** atau **"Daftar"** di halaman utama.
+3. Isi formulir registrasi dengan data berikut:
+
+   * **Email**
+   * **Password**
+4. Klik tombol **"Submit"** atau **"Daftar"**.
+5. Cek email Anda untuk verifikasi (jika sistem mengaktifkan verifikasi email).
+6. Setelah terverifikasi, Anda bisa langsung login.
+
+### 🔑 Login (Masuk)
+
+1. Di halaman utama, klik tombol **"Login"** atau **"Masuk"**.
+2. Masukkan email dan password yang telah Anda daftarkan.
+3. Klik **"Masuk"**.
+4. Jika berhasil, Anda akan diarahkan ke dashboard untuk mulai melakukan donasi atau mengelola data Anda.
 
 ---
 
-## ✨ Features
-
-- 🔐 **Secure Authentication** powered by Supabase  
-- 💳 **Donation Management System** to track and manage contributions  
-- 🎨 **Reusable UI Components** using Tailwind CSS  
-- ⚡ **Blazing-fast Dev Environment** with Vite  
-- 🧠 **Type-Safe Codebase** using TypeScript  
+Aplikasi web donasi full-stack yang dibangun untuk kesederhanaan, kecepatan, dan skalabilitas.
 
 ---
 
-## 🚀 Getting Started
+## 📌 Ringkasan
 
-### 🔧 1. Clone the Repository
+**Obligatory Charity** menyederhanakan proses donasi melalui pengalaman web yang mulus. Dengan komponen antarmuka modern, autentikasi yang aman, dan sistem manajemen donasi yang kuat, aplikasi ini dirancang untuk memberdayakan baik donatur maupun administrator.
+
+---
+
+## ✨ Fitur
+
+* 🔐 **Autentikasi Aman** menggunakan Supabase
+* 💳 **Sistem Manajemen Donasi** untuk melacak dan mengelola kontribusi
+* 🎨 **Komponen UI yang Dapat Digunakan Ulang** dengan Tailwind CSS
+* ⚡ **Lingkungan Pengembangan Super Cepat** dengan Vite
+* 🧠 **Basis Kode Bertipe Aman** menggunakan TypeScript
+
+---
+
+## 🚀 Memulai
+
+### 🔧 1. Clone Repositori
+
 ```bash
 git clone https://github.com/le0nxD/obligatory-charity.git 
 cd obligatory-charity
 ```
 
-### 📦 2. Install Dependencies
+### 📦 2. Instalasi Dependensi
+
 ```bash
 npm install
 ```
 
-### 🔑 3. Set Up Environment Variables  
-Create a `.env` file in the root directory with the following:
+### 🔑 3. Atur Variabel Lingkungan
+
+Buat file `.env` di direktori root dengan isi sebagai berikut:
+
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 🧪 4. Start Development Server
+### 🧪 4. Jalankan Server Pengembangan
+
 ```bash
 npm run dev
 ```
-Access the app at: [http://localhost:5173](http://localhost:5173)
+
+Akses aplikasi di: [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## 🧰 Tech Stack
+## 🧰 Teknologi yang Digunakan
 
-| 🛠️ Tech         | 🔎 Description                      |
-|----------------|-------------------------------------|
-| **React**       | Frontend UI library                |
-| **TypeScript**  | Typed JavaScript for scalability   |
-| **Tailwind CSS**| Utility-first CSS framework        |
-| **Vite**        | Lightning-fast build tool          |
-| **Supabase**    | Backend-as-a-Service (BaaS)        |
-
----
-
-## 🛡️ License
-
-Licensed under the [MIT License](./LICENSE)
+| 🛠️ Teknologi    | 🔎 Deskripsi                          |
+| ---------------- | ------------------------------------- |
+| **React**        | Library UI untuk frontend             |
+| **TypeScript**   | JavaScript bertipe untuk skalabilitas |
+| **Tailwind CSS** | Framework CSS berbasis utilitas       |
+| **Vite**         | Alat build super cepat                |
+| **Supabase**     | Backend-as-a-Service (BaaS)           |
 
 ---
 
-## 👨‍💻 Author
+## 🛡️ Lisensi
 
-Crafted with ❤️ by 
-[237006152 Muhammad Naufal Darlian](https://github.com/le0nxD)
-[237006176 Ardhi Fardan Kamil](https://github.com/Kai2446-cmyk)
-[237006179 Muhammad Lutfi Nurhakim](https://github.com/Oxiliya) 
-
-Contributions and feedback are always welcome!
-
----
+Dilindungi oleh [Lisensi MIT](./LICENSE)
